@@ -1,0 +1,262 @@
+<!DOCTYPE html>
+<html lang="ja">
+<head>
+<meta charset="utf-8" />
+<meta name="viewport" content="width=device-width, initial-scale=1" />
+<title>MAGI風 謎解き - ALMAROS</title>
+<style>
+  :root{
+    --bg:#050607;            /* MAGI端末っぽい黒 */
+    --panel:#0a0f12;         /* パネル下地 */
+    --accent:#3aff7b;        /* 緑発光 */
+    --accent2:#ffb23a;       /* オレンジ発光 */
+    --danger:#ff3a3a;        /* 却下 赤 */
+    --grid:#0e1a1f;
+    --stroke:rgba(255,255,255,.08);
+  }
+  html,body{height:100%;margin:0;background:var(--bg);color:#d8ffe6;font-family:ui-monospace, SFMono-Regular, Menlo, Consolas, "Liberation Mono", monospace}
+  .wrap{max-width:1200px;margin:0 auto;padding:24px;}
+  header{display:flex;gap:12px;align-items:center;margin-bottom:16px}
+  header h1{font-size:18px;letter-spacing:.2em;margin:0;color:#a9ffe0}
+  .grid{display:grid;grid-template-columns:repeat(3,1fr);gap:16px}
+  .panel{position:relative;border:1px solid var(--stroke);background:linear-gradient(180deg, rgba(62,255,123,.06), rgba(62,255,123,.01));box-shadow:0 0 0 1px rgba(62,255,123,.07) inset;border-radius:10px;overflow:hidden}
+  .panel::before{content:"";position:absolute;inset:0;background:
+    linear-gradient(0deg, rgba(255,255,255,.06), rgba(255,255,255,0)),
+    repeating-linear-gradient(90deg,var(--grid),var(--grid) 1px,transparent 1px,transparent 12px),
+    repeating-linear-gradient(0deg,var(--grid),var(--grid) 1px,transparent 1px,transparent 12px);
+    mix-blend-mode:soft-light;pointer-events:none}
+  .panel h2{margin:0;padding:10px 12px;background:#091314cc;border-bottom:1px solid var(--stroke);font-size:14px;letter-spacing:.18em;color:var(--accent)}
+  .panel h2 small{color:#9fd8ff;opacity:.7;margin-left:8px}
+  .panel .body{padding:16px;min-height:260px;display:flex;flex-direction:column;gap:14px}
+  .kbd{display:inline-block;border:1px solid var(--stroke);padding:4px 8px;border-radius:6px;color:#b9ffe6}
+  button{cursor:pointer;background:transparent;border:1px solid var(--stroke);color:#d8ffe6;padding:8px 12px;border-radius:8px}
+  button:hover{border-color:var(--accent);box-shadow:0 0 0 1px var(--accent) inset}
+  .status{margin-top:auto;padding-top:8px;border-top:1px dashed var(--stroke);font-size:12px;color:#9bfed1;letter-spacing:.1em}
+  .ok{color:var(--accent)}
+  .ng{color:var(--danger)}
+  .blink{animation:blink 1s steps(1) infinite}
+  @keyframes blink{50%{opacity:.2}}
+
+  /* タイトルカード（エヴァ風） */
+  .title-card{position:fixed;inset:0;background:#000;display:none;align-items:center;justify-content:center;z-index:999}
+  .title-card.show{display:flex}
+  .title-inner{position:relative;width:min(900px,90vw);height:min(540px,70vh);background:#000;box-shadow:0 0 0 4px #000,0 0 0 6px #fff}
+  .title-text{position:absolute;inset:0;display:flex;align-items:center;justify-content:center;font-family:"游明朝体", "Yu Mincho", "Hiragino Mincho ProN", "MS PMincho", serif;color:#fff;font-weight:700}
+  .title-text .num{position:absolute;top:28px;right:28px;font-size:28px;letter-spacing:.2em}
+  .title-text .main{font-size:64px;line-height:1.15;letter-spacing:.15em;writing-mode:vertical-rl;text-orientation:upright;text-shadow:0 2px 0 #000}
+  .tap{position:absolute;bottom:14px;left:0;right:0;text-align:center;color:#fff;opacity:.8;font-size:12px;letter-spacing:.3em}
+
+  /* パズル要素 */
+  .choices{display:flex;gap:12px;flex-wrap:wrap}
+  .choice{flex:1;min-width:90px;text-align:center;padding:14px 10px;border:1px dashed var(--stroke);border-radius:10px;background:#071015}
+  .choice.sel{outline:2px solid var(--accent);background:#061c12}
+  .badge{display:inline-block;margin-left:6px;padding:2px 6px;border:1px solid var(--stroke);border-radius:999px;font-size:11px;opacity:.8}
+  .order{display:flex;gap:12px}
+  .order .sigil{user-select:none;flex:1;min-width:90px;border:1px dashed var(--stroke);border-radius:10px;background:#070c14;padding:18px 12px;text-align:center}
+  .order .sigil button{display:block;margin:10px auto 0}
+  .sigil b{display:block;font-size:28px;margin-bottom:4px}
+
+  .dragwrap{display:flex;gap:16px;align-items:center}
+  .target{flex:1;min-height:120px;border:2px dashed var(--accent2);border-radius:10px;padding:14px;text-align:center}
+  .draggable{display:inline-block;padding:10px 14px;border:1px solid var(--stroke);border-radius:10px;background:#120a0a}
+
+  .footer{margin-top:20px;display:flex;gap:12px;align-items:center;justify-content:space-between}
+  .code{font-size:20px;letter-spacing:.25em}
+  .accept{font-size:18px}
+
+  @media (max-width:900px){
+    .grid{grid-template-columns:1fr}
+    .title-text .main{font-size:48px}
+  }
+</style>
+</head>
+<body>
+<div class="wrap">
+  <header>
+    <div class="kbd">MAGI SYSTEM // ACCESS CHALLENGE</div>
+    <div class="kbd">MELCHIOR-1</div>
+    <div class="kbd">BALTHASAR-2</div>
+    <div class="kbd">CASPER-3</div>
+    <span class="blink" aria-hidden>▮</span>
+  </header>
+
+  <div class="grid">
+    <!-- MELCHIOR-1 : 第壱問 A -->
+    <section class="panel" id="q1">
+      <h2>MELCHIOR-1 <small>第壱問 / 封印、果実</small></h2>
+      <div class="body">
+        <p>禁断の果実を選択せよ（ひとつだけ）。</p>
+        <div class="choices" role="group" aria-label="fruits">
+          <div class="choice" data-v="X">🍇 GRAPE</div>
+          <div class="choice" data-v="A">🍎 APPLE <span class="badge">知恵の実</span></div>
+          <div class="choice" data-v="X">🍊 ORANGE</div>
+        </div>
+        <div class="status" id="s1">STATUS: 待機中…</div>
+      </div>
+    </section>
+
+    <!-- BALTHASAR-2 : 第弐問 LMA -->
+    <section class="panel" id="q2">
+      <h2>BALTHASAR-2 <small>第弐問 / 巨人、知恵</small></h2>
+      <div class="body">
+        <p>三つの“名”を正しい順に揃えよ（<span class="badge">L → M → A</span>）。<br/>ボタンで順番を切り替え、<em>1→2→3</em>を設定。</p>
+        <div class="order">
+          <div class="sigil" data-key="L">
+            <b>◇</b> LILITH
+            <button type="button" class="ord">順番: <span>3</span></button>
+          </div>
+          <div class="sigil" data-key="M">
+            <b>△</b> MAGI
+            <button type="button" class="ord">順番: <span>1</span></button>
+          </div>
+          <div class="sigil" data-key="A">
+            <b>○</b> ADAM
+            <button type="button" class="ord">順番: <span>2</span></button>
+          </div>
+        </div>
+        <button id="chk2">承認リクエスト</button>
+        <div class="status" id="s2">STATUS: 待機中…</div>
+      </div>
+    </section>
+
+    <!-- CASPER-3 : 第参問 ROS -->
+    <section class="panel" id="q3">
+      <h2>CASPER-3 <small>第参問 / 槍、白月</small></h2>
+      <div class="body">
+        <p>槍を“白き月の〈彼女〉”へ投射せよ。成功でコードが出力される。</p>
+        <div class="dragwrap">
+          <div class="draggable" id="spear" draggable="true" aria-grabbed="false" role="button">🗡️ Spear</div>
+          <div class="target" id="lilith" aria-dropeffect="move">
+            <div style="font-size:40px">☾</div>
+            <div>白き月の<small>（リリス）</small></div>
+            <div style="font-size:28px;margin-top:6px">†</div>
+          </div>
+        </div>
+        <div class="status" id="s3">STATUS: 待機中…</div>
+      </div>
+    </section>
+  </div>
+
+  <div class="footer">
+    <div>
+      <button id="show1">第壱問 タイトル表示</button>
+      <button id="show2">第弐問 タイトル表示</button>
+      <button id="show3">第参問 タイトル表示</button>
+    </div>
+    <div>
+      <span class="kbd">OUTPUT</span>
+      <span class="code" id="out">_ _ _  /  _ _ _  /  _ _ _</span>
+      <button id="final">最終承認</button>
+    </div>
+  </div>
+
+  <div class="status" style="margin-top:10px">三つの出力を結合すると… ACCESS CODE = <b>ALMAROS</b></div>
+  <div class="status accept" id="accept"></div>
+</div>
+
+<!-- タイトルカード（エヴァ風） -->
+<div class="title-card" id="tcard" role="dialog" aria-modal="true">
+  <div class="title-inner">
+    <div class="title-text">
+      <div class="num" id="tc-num">第壱問</div>
+      <div class="main" id="tc-main">封印、果実</div>
+    </div>
+    <div class="tap">TAP / CLICK</div>
+  </div>
+</div>
+
+<script>
+(function(){
+  const out = {A:null, LMA:null, ROS:null};
+  const outView = document.getElementById('out');
+  const accept = document.getElementById('accept');
+  function renderOut(){
+    const a = out.A??'_';
+    const lma = out.LMA??'___';
+    const ros = out.ROS??'___';
+    outView.textContent = `${a} ${a==='A'?'':'_'} _  /  ${lma}  /  ${ros}`.replace(/\s+/g,' ');
+  }
+  renderOut();
+
+  /* --- Q1: Fruits --- */
+  document.querySelectorAll('#q1 .choice').forEach(el=>{
+    el.addEventListener('click',()=>{
+      document.querySelectorAll('#q1 .choice').forEach(c=>c.classList.remove('sel'));
+      el.classList.add('sel');
+      const v = el.getAttribute('data-v');
+      const s = document.getElementById('s1');
+      if(v==='A'){
+        out.A = 'A'; s.innerHTML = 'STATUS: <span class="ok">承認 - CODE[A]</span>';
+      }else{
+        out.A = null; s.innerHTML = 'STATUS: <span class="ng">却下 - 再選択</span>';
+      }
+      renderOut();
+    });
+  });
+
+  /* --- Q2: Order L M A --- */
+  const orderBtns = document.querySelectorAll('#q2 .ord');
+  orderBtns.forEach(btn=>{
+    btn.addEventListener('click',()=>{
+      const span = btn.querySelector('span');
+      let n = Number(span.textContent.trim());
+      n = n%3 + 1; span.textContent = n;
+    });
+  });
+  document.getElementById('chk2').addEventListener('click',()=>{
+    const arr = Array.from(document.querySelectorAll('#q2 .sigil'))
+      .map(s=>({key:s.getAttribute('data-key'), n:Number(s.querySelector('span').textContent.trim())}))
+      .sort((a,b)=>a.n-b.n)
+      .map(o=>o.key).join('');
+    const s = document.getElementById('s2');
+    if(arr==='LMA'){
+      out.LMA = 'LMA'; s.innerHTML = 'STATUS: <span class="ok">承認 - CODE[LMA]</span>';
+    }else{
+      out.LMA = null; s.innerHTML = 'STATUS: <span class="ng">却下 - 並び順を調整</span>';
+    }
+    renderOut();
+  });
+
+  /* --- Q3: Drag spear onto Lilith --- */
+  const spear = document.getElementById('spear');
+  const target = document.getElementById('lilith');
+  spear.addEventListener('dragstart', e=>{
+    e.dataTransfer.setData('text/plain','spear');
+    spear.style.opacity = .6;
+  });
+  spear.addEventListener('dragend', ()=>{spear.style.opacity = 1});
+  ;['dragover','dragenter'].forEach(ev=>target.addEventListener(ev, e=>{e.preventDefault();}));
+  target.addEventListener('drop', e=>{
+    e.preventDefault();
+    const data = e.dataTransfer.getData('text/plain');
+    const s = document.getElementById('s3');
+    if(data==='spear'){
+      out.ROS = 'ROS';
+      s.innerHTML = 'STATUS: <span class="ok">命中 - CODE[ROS]</span>';
+    }
+    renderOut();
+  });
+
+  /* --- Title card helpers --- */
+  const tcard = document.getElementById('tcard');
+  const tn = document.getElementById('tc-num');
+  const tm = document.getElementById('tc-main');
+  function showCard(num, main){ tn.textContent = num; tm.textContent = main; tcard.classList.add('show'); }
+  function hideCard(){ tcard.classList.remove('show'); }
+  tcard.addEventListener('click', hideCard);
+  document.getElementById('show1').addEventListener('click',()=>showCard('第壱問','封印、果実'));
+  document.getElementById('show2').addEventListener('click',()=>showCard('第弐問','巨人、知恵'));
+  document.getElementById('show3').addEventListener('click',()=>showCard('第参問','槍、白月'));
+
+  /* --- Final --- */
+  document.getElementById('final').addEventListener('click',()=>{
+    if(out.A==='A' && out.LMA==='LMA' && out.ROS==='ROS'){
+      accept.innerHTML = '<span class="ok">MAGI SYSTEM: ACCESS CODE <b>ALMAROS</b> / 承認</span>';
+    }else{
+      accept.innerHTML = '<span class="ng">MAGI SYSTEM: 不一致 - 承認不可</span>';
+    }
+  });
+})();
+</script>
+</body>
+</html>
