@@ -1,262 +1,399 @@
-<!DOCTYPE html>
+<!doctype html>
 <html lang="ja">
-<head>
-<meta charset="utf-8" />
-<meta name="viewport" content="width=device-width, initial-scale=1" />
-<title>MAGI風 謎解き - ALMAROS</title>
-<style>
-  :root{
-    --bg:#050607;            /* MAGI端末っぽい黒 */
-    --panel:#0a0f12;         /* パネル下地 */
-    --accent:#3aff7b;        /* 緑発光 */
-    --accent2:#ffb23a;       /* オレンジ発光 */
-    --danger:#ff3a3a;        /* 却下 赤 */
-    --grid:#0e1a1f;
-    --stroke:rgba(255,255,255,.08);
-  }
-  html,body{height:100%;margin:0;background:var(--bg);color:#d8ffe6;font-family:ui-monospace, SFMono-Regular, Menlo, Consolas, "Liberation Mono", monospace}
-  .wrap{max-width:1200px;margin:0 auto;padding:24px;}
-  header{display:flex;gap:12px;align-items:center;margin-bottom:16px}
-  header h1{font-size:18px;letter-spacing:.2em;margin:0;color:#a9ffe0}
-  .grid{display:grid;grid-template-columns:repeat(3,1fr);gap:16px}
-  .panel{position:relative;border:1px solid var(--stroke);background:linear-gradient(180deg, rgba(62,255,123,.06), rgba(62,255,123,.01));box-shadow:0 0 0 1px rgba(62,255,123,.07) inset;border-radius:10px;overflow:hidden}
-  .panel::before{content:"";position:absolute;inset:0;background:
-    linear-gradient(0deg, rgba(255,255,255,.06), rgba(255,255,255,0)),
-    repeating-linear-gradient(90deg,var(--grid),var(--grid) 1px,transparent 1px,transparent 12px),
-    repeating-linear-gradient(0deg,var(--grid),var(--grid) 1px,transparent 1px,transparent 12px);
-    mix-blend-mode:soft-light;pointer-events:none}
-  .panel h2{margin:0;padding:10px 12px;background:#091314cc;border-bottom:1px solid var(--stroke);font-size:14px;letter-spacing:.18em;color:var(--accent)}
-  .panel h2 small{color:#9fd8ff;opacity:.7;margin-left:8px}
-  .panel .body{padding:16px;min-height:260px;display:flex;flex-direction:column;gap:14px}
-  .kbd{display:inline-block;border:1px solid var(--stroke);padding:4px 8px;border-radius:6px;color:#b9ffe6}
-  button{cursor:pointer;background:transparent;border:1px solid var(--stroke);color:#d8ffe6;padding:8px 12px;border-radius:8px}
-  button:hover{border-color:var(--accent);box-shadow:0 0 0 1px var(--accent) inset}
-  .status{margin-top:auto;padding-top:8px;border-top:1px dashed var(--stroke);font-size:12px;color:#9bfed1;letter-spacing:.1em}
-  .ok{color:var(--accent)}
-  .ng{color:var(--danger)}
-  .blink{animation:blink 1s steps(1) infinite}
-  @keyframes blink{50%{opacity:.2}}
-
-  /* タイトルカード（エヴァ風） */
-  .title-card{position:fixed;inset:0;background:#000;display:none;align-items:center;justify-content:center;z-index:999}
-  .title-card.show{display:flex}
-  .title-inner{position:relative;width:min(900px,90vw);height:min(540px,70vh);background:#000;box-shadow:0 0 0 4px #000,0 0 0 6px #fff}
-  .title-text{position:absolute;inset:0;display:flex;align-items:center;justify-content:center;font-family:"游明朝体", "Yu Mincho", "Hiragino Mincho ProN", "MS PMincho", serif;color:#fff;font-weight:700}
-  .title-text .num{position:absolute;top:28px;right:28px;font-size:28px;letter-spacing:.2em}
-  .title-text .main{font-size:64px;line-height:1.15;letter-spacing:.15em;writing-mode:vertical-rl;text-orientation:upright;text-shadow:0 2px 0 #000}
-  .tap{position:absolute;bottom:14px;left:0;right:0;text-align:center;color:#fff;opacity:.8;font-size:12px;letter-spacing:.3em}
-
-  /* パズル要素 */
-  .choices{display:flex;gap:12px;flex-wrap:wrap}
-  .choice{flex:1;min-width:90px;text-align:center;padding:14px 10px;border:1px dashed var(--stroke);border-radius:10px;background:#071015}
-  .choice.sel{outline:2px solid var(--accent);background:#061c12}
-  .badge{display:inline-block;margin-left:6px;padding:2px 6px;border:1px solid var(--stroke);border-radius:999px;font-size:11px;opacity:.8}
-  .order{display:flex;gap:12px}
-  .order .sigil{user-select:none;flex:1;min-width:90px;border:1px dashed var(--stroke);border-radius:10px;background:#070c14;padding:18px 12px;text-align:center}
-  .order .sigil button{display:block;margin:10px auto 0}
-  .sigil b{display:block;font-size:28px;margin-bottom:4px}
-
-  .dragwrap{display:flex;gap:16px;align-items:center}
-  .target{flex:1;min-height:120px;border:2px dashed var(--accent2);border-radius:10px;padding:14px;text-align:center}
-  .draggable{display:inline-block;padding:10px 14px;border:1px solid var(--stroke);border-radius:10px;background:#120a0a}
-
-  .footer{margin-top:20px;display:flex;gap:12px;align-items:center;justify-content:space-between}
-  .code{font-size:20px;letter-spacing:.25em}
-  .accept{font-size:18px}
-
-  @media (max-width:900px){
-    .grid{grid-template-columns:1fr}
-    .title-text .main{font-size:48px}
-  }
-</style>
-</head>
-<body>
-<div class="wrap">
-  <header>
-    <div class="kbd">MAGI SYSTEM // ACCESS CHALLENGE</div>
-    <div class="kbd">MELCHIOR-1</div>
-    <div class="kbd">BALTHASAR-2</div>
-    <div class="kbd">CASPER-3</div>
-    <span class="blink" aria-hidden>▮</span>
-  </header>
-
-  <div class="grid">
-    <!-- MELCHIOR-1 : 第壱問 A -->
-    <section class="panel" id="q1">
-      <h2>MELCHIOR-1 <small>第壱問 / 封印、果実</small></h2>
-      <div class="body">
-        <p>禁断の果実を選択せよ（ひとつだけ）。</p>
-        <div class="choices" role="group" aria-label="fruits">
-          <div class="choice" data-v="X">🍇 GRAPE</div>
-          <div class="choice" data-v="A">🍎 APPLE <span class="badge">知恵の実</span></div>
-          <div class="choice" data-v="X">🍊 ORANGE</div>
-        </div>
-        <div class="status" id="s1">STATUS: 待機中…</div>
-      </div>
-    </section>
-
-    <!-- BALTHASAR-2 : 第弐問 LMA -->
-    <section class="panel" id="q2">
-      <h2>BALTHASAR-2 <small>第弐問 / 巨人、知恵</small></h2>
-      <div class="body">
-        <p>三つの“名”を正しい順に揃えよ（<span class="badge">L → M → A</span>）。<br/>ボタンで順番を切り替え、<em>1→2→3</em>を設定。</p>
-        <div class="order">
-          <div class="sigil" data-key="L">
-            <b>◇</b> LILITH
-            <button type="button" class="ord">順番: <span>3</span></button>
-          </div>
-          <div class="sigil" data-key="M">
-            <b>△</b> MAGI
-            <button type="button" class="ord">順番: <span>1</span></button>
-          </div>
-          <div class="sigil" data-key="A">
-            <b>○</b> ADAM
-            <button type="button" class="ord">順番: <span>2</span></button>
-          </div>
-        </div>
-        <button id="chk2">承認リクエスト</button>
-        <div class="status" id="s2">STATUS: 待機中…</div>
-      </div>
-    </section>
-
-    <!-- CASPER-3 : 第参問 ROS -->
-    <section class="panel" id="q3">
-      <h2>CASPER-3 <small>第参問 / 槍、白月</small></h2>
-      <div class="body">
-        <p>槍を“白き月の〈彼女〉”へ投射せよ。成功でコードが出力される。</p>
-        <div class="dragwrap">
-          <div class="draggable" id="spear" draggable="true" aria-grabbed="false" role="button">🗡️ Spear</div>
-          <div class="target" id="lilith" aria-dropeffect="move">
-            <div style="font-size:40px">☾</div>
-            <div>白き月の<small>（リリス）</small></div>
-            <div style="font-size:28px;margin-top:6px">†</div>
-          </div>
-        </div>
-        <div class="status" id="s3">STATUS: 待機中…</div>
-      </div>
-    </section>
-  </div>
-
-  <div class="footer">
-    <div>
-      <button id="show1">第壱問 タイトル表示</button>
-      <button id="show2">第弐問 タイトル表示</button>
-      <button id="show3">第参問 タイトル表示</button>
-    </div>
-    <div>
-      <span class="kbd">OUTPUT</span>
-      <span class="code" id="out">_ _ _  /  _ _ _  /  _ _ _</span>
-      <button id="final">最終承認</button>
-    </div>
-  </div>
-
-  <div class="status" style="margin-top:10px">三つの出力を結合すると… ACCESS CODE = <b>ALMAROS</b></div>
-  <div class="status accept" id="accept"></div>
-</div>
-
-<!-- タイトルカード（エヴァ風） -->
-<div class="title-card" id="tcard" role="dialog" aria-modal="true">
-  <div class="title-inner">
-    <div class="title-text">
-      <div class="num" id="tc-num">第壱問</div>
-      <div class="main" id="tc-main">封印、果実</div>
-    </div>
-    <div class="tap">TAP / CLICK</div>
-  </div>
-</div>
-
-<script>
-(function(){
-  const out = {A:null, LMA:null, ROS:null};
-  const outView = document.getElementById('out');
-  const accept = document.getElementById('accept');
-  function renderOut(){
-    const a = out.A??'_';
-    const lma = out.LMA??'___';
-    const ros = out.ROS??'___';
-    outView.textContent = `${a} ${a==='A'?'':'_'} _  /  ${lma}  /  ${ros}`.replace(/\s+/g,' ');
-  }
-  renderOut();
-
-  /* --- Q1: Fruits --- */
-  document.querySelectorAll('#q1 .choice').forEach(el=>{
-    el.addEventListener('click',()=>{
-      document.querySelectorAll('#q1 .choice').forEach(c=>c.classList.remove('sel'));
-      el.classList.add('sel');
-      const v = el.getAttribute('data-v');
-      const s = document.getElementById('s1');
-      if(v==='A'){
-        out.A = 'A'; s.innerHTML = 'STATUS: <span class="ok">承認 - CODE[A]</span>';
-      }else{
-        out.A = null; s.innerHTML = 'STATUS: <span class="ng">却下 - 再選択</span>';
+  <head>
+    <meta charset="utf-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1" />
+    <title>EVA QUIZ</title>
+    <script src="https://cdn.tailwindcss.com"></script>
+    <script crossorigin src="https://unpkg.com/react@18/umd/react.development.js"></script>
+    <script crossorigin src="https://unpkg.com/react-dom@18/umd/react-dom.development.js"></script>
+    <script src="https://unpkg.com/@babel/standalone/babel.min.js"></script>
+    <link href="https://fonts.googleapis.com/css2?family=Share+Tech+Mono&display=swap" rel="stylesheet" />
+    <link href="https://fonts.googleapis.com/css2?family=Noto+Serif+JP:wght@700&display=swap" rel="stylesheet" />
+    <style>
+      html, body, #root { height: 100%; }
+      body { margin: 0; background: #0b0f1a; }
+      :root {
+        --magi-bg: #0b0f1a;
+        --magi-panel: #0f172a;
+        --magi-border: rgba(255,255,255,0.08);
+        --magi-cyan: #22d3ee;     /* MELCHIOR */
+        --magi-amber: #f59e0b;    /* BALTHASAR */
+        --magi-emerald: #34d399;  /* CASPER */
       }
-      renderOut();
-    });
-  });
+      .font-magi { font-family: 'Share Tech Mono', ui-monospace, SFMono-Regular, Menlo, Monaco, Consolas, "Liberation Mono", "Courier New", monospace; }
+      .font-mincho { font-family: 'Noto Serif JP', serif; }
+      .magi-scanlines {
+        pointer-events: none;
+        position: fixed; inset: 0; z-index: 10;
+        background-image: linear-gradient(rgba(255,255,255,0.03) 1px, transparent 1px);
+        background-size: 100% 3px;
+        mix-blend-mode: overlay;
+      }
+      .magi-grid {
+        background-image:
+          radial-gradient(ellipse at center, rgba(255,255,255,0.04) 0%, rgba(255,255,255,0.00) 60%),
+          linear-gradient(rgba(255,255,255,0.03) 1px, transparent 1px),
+          linear-gradient(90deg, rgba(255,255,255,0.03) 1px, transparent 1px);
+        background-size: 100% 100%, 32px 32px, 32px 32px;
+        background-position: center, 0 0, 0 0;
+      }
+      .magi-panel {
+        background: var(--magi-panel);
+        border: 1px solid var(--magi-border);
+        box-shadow:
+          inset 0 1px 0 rgba(255,255,255,0.05),
+          0 10px 30px rgba(0,0,0,0.35);
+      }
+      .magi-glow-emerald { box-shadow: 0 0 0 2px rgba(52,211,153,0.3), 0 0 24px rgba(52,211,153,0.25); }
+      .magi-glow-cyan { box-shadow: 0 0 0 2px rgba(34,211,238,0.3), 0 0 24px rgba(34,211,238,0.25); }
+      .magi-glow-amber { box-shadow: 0 0 0 2px rgba(245,158,11,0.3), 0 0 24px rgba(245,158,11,0.25); }
+      :root { --tri-size: min(95vw, 80vh); --btn-size: calc(var(--tri-size) * 0.48); }
+      .triangle-container { width: var(--tri-size); height: var(--tri-size); }
+      .system-btn { width: var(--btn-size); height: var(--btn-size); }
+    </style>
+  </head>
+  <body>
+    <div id="root"></div>
 
-  /* --- Q2: Order L M A --- */
-  const orderBtns = document.querySelectorAll('#q2 .ord');
-  orderBtns.forEach(btn=>{
-    btn.addEventListener('click',()=>{
-      const span = btn.querySelector('span');
-      let n = Number(span.textContent.trim());
-      n = n%3 + 1; span.textContent = n;
-    });
-  });
-  document.getElementById('chk2').addEventListener('click',()=>{
-    const arr = Array.from(document.querySelectorAll('#q2 .sigil'))
-      .map(s=>({key:s.getAttribute('data-key'), n:Number(s.querySelector('span').textContent.trim())}))
-      .sort((a,b)=>a.n-b.n)
-      .map(o=>o.key).join('');
-    const s = document.getElementById('s2');
-    if(arr==='LMA'){
-      out.LMA = 'LMA'; s.innerHTML = 'STATUS: <span class="ok">承認 - CODE[LMA]</span>';
-    }else{
-      out.LMA = null; s.innerHTML = 'STATUS: <span class="ng">却下 - 並び順を調整</span>';
-    }
-    renderOut();
-  });
+    <script type="text/babel">
+      const { useEffect, useMemo, useState } = React;
 
-  /* --- Q3: Drag spear onto Lilith --- */
-  const spear = document.getElementById('spear');
-  const target = document.getElementById('lilith');
-  spear.addEventListener('dragstart', e=>{
-    e.dataTransfer.setData('text/plain','spear');
-    spear.style.opacity = .6;
-  });
-  spear.addEventListener('dragend', ()=>{spear.style.opacity = 1});
-  ;['dragover','dragenter'].forEach(ev=>target.addEventListener(ev, e=>{e.preventDefault();}));
-  target.addEventListener('drop', e=>{
-    e.preventDefault();
-    const data = e.dataTransfer.getData('text/plain');
-    const s = document.getElementById('s3');
-    if(data==='spear'){
-      out.ROS = 'ROS';
-      s.innerHTML = 'STATUS: <span class="ok">命中 - CODE[ROS]</span>';
-    }
-    renderOut();
-  });
+      // --- Utility: text normalization (JP-friendly) ---
+      const toKatakana = (str) =>
+        str.replace(/[ぁ-ゖ]/g, (s) => String.fromCharCode(s.charCodeAt(0) + 0x60));
+      const toHankaku = (str) =>
+        str
+          // zenkaku numbers & ASCII
+          .replace(/[！-～]/g, (s) => String.fromCharCode(s.charCodeAt(0) - 0xfee0))
+          // zenkaku space -> half
+          .replace(/　/g, " ");
+      const normalize = (str) => toKatakana(toHankaku((str || "").trim())).replace(/\s+/g, "");
 
-  /* --- Title card helpers --- */
-  const tcard = document.getElementById('tcard');
-  const tn = document.getElementById('tc-num');
-  const tm = document.getElementById('tc-main');
-  function showCard(num, main){ tn.textContent = num; tm.textContent = main; tcard.classList.add('show'); }
-  function hideCard(){ tcard.classList.remove('show'); }
-  tcard.addEventListener('click', hideCard);
-  document.getElementById('show1').addEventListener('click',()=>showCard('第壱問','封印、果実'));
-  document.getElementById('show2').addEventListener('click',()=>showCard('第弐問','巨人、知恵'));
-  document.getElementById('show3').addEventListener('click',()=>showCard('第参問','槍、白月'));
+      // --- Answer keys ---
+      const ANSWERS = [
+        normalize("スーパー"), // Q1
+        normalize("20"), // Q2
+        normalize("アルマロス"), // Q3
+      ];
 
-  /* --- Final --- */
-  document.getElementById('final').addEventListener('click',()=>{
-    if(out.A==='A' && out.LMA==='LMA' && out.ROS==='ROS'){
-      accept.innerHTML = '<span class="ok">MAGI SYSTEM: ACCESS CODE <b>ALMAROS</b> / 承認</span>';
-    }else{
-      accept.innerHTML = '<span class="ng">MAGI SYSTEM: 不一致 - 承認不可</span>';
-    }
-  });
-})();
-</script>
-</body>
+      // --- Default images ---
+      const PLACEHOLDERS = [
+        "assets/q1.png", // Q1
+        "assets/q2.png", // Q2
+        "assets/q3.png", // Q3
+      ];
+
+      // --- LocalStorage helpers ---
+      const LS_KEY = "magi-puzzle-state-v1";
+      const loadState = () => {
+        try {
+          const raw = localStorage.getItem(LS_KEY);
+          return raw ? JSON.parse(raw) : null;
+        } catch (e) {
+          return null;
+        }
+      };
+      const saveState = (s) => {
+        try {
+          localStorage.setItem(LS_KEY, JSON.stringify(s));
+        } catch (e) {}
+      };
+
+      function SystemButton({ i, sys, status, onOpen }) {
+        return (
+          <button
+            onClick={onOpen}
+            className={[
+              "system-btn aspect-square rounded-2xl p-2 flex flex-col items-center justify-center",
+              "magi-panel relative",
+              status[i] ? `ring-2 ring-emerald-400 ${sys.glow}` : "hover:ring-1 hover:ring-white/20",
+            ].join(" ")}
+          >
+            <div className="absolute inset-0 rounded-2xl pointer-events-none">
+              <div className="absolute inset-x-2 top-2 h-px bg-white/10" />
+              <div className="absolute inset-y-2 left-2 w-px bg-white/10" />
+              <div className="absolute inset-y-2 right-2 w-px bg-white/10" />
+              <div className="absolute inset-x-2 bottom-2 h-px bg-white/10" />
+            </div>
+            <div className={`text-[9px] opacity-70 tracking-[0.3em] mb-1`}>{sys.key}</div>
+            {/* Remove Katakana label */}
+            <div className="mt-1 text-[10px]">
+              {status[i] ? (
+                <span className="px-2 py-0.5 rounded bg-emerald-500/10 text-emerald-300 border border-emerald-400/30 font-mincho text-2xl">承認</span>
+              ) : (
+                <span className="px-2 py-0.5 rounded bg-yellow-500/10 text-yellow-300 border border-yellow-400/30">審議中</span>
+              )}
+            </div>
+          </button>
+        );
+      }
+
+      function App() {
+        const saved = useMemo(() => loadState(), []);
+
+        const [images, setImages] = useState(
+          saved?.images?.length === 3 ? saved.images : PLACEHOLDERS
+        );
+        const [answers, setAnswers] = useState(["", "", ""]);
+        const [status, setStatus] = useState(saved?.status || [false, false, false]);
+        const [openIdx, setOpenIdx] = useState(null); // modal index
+        const [showSettings, setShowSettings] = useState(false);
+        const [showCongrats, setShowCongrats] = useState(false);
+
+        const allClear = status.every(Boolean);
+
+        useEffect(() => {
+          saveState({ images, status });
+        }, [images, status]);
+
+        // Mobile viewport full-height fix
+        useEffect(() => {
+          const setVh = () => {
+            document.documentElement.style.setProperty(
+              "--vh",
+              `${window.innerHeight * 0.01}px`
+            );
+          };
+          setVh();
+          window.addEventListener("resize", setVh);
+          return () => window.removeEventListener("resize", setVh);
+        }, []);
+
+        const SYSTEMS = [
+          { key: "MELCHIOR", jp: "メルキオール", accent: "from-cyan-500 to-sky-600", glow: "magi-glow-cyan" },
+          { key: "BALTHASAR", jp: "バルタザール", accent: "from-amber-500 to-orange-600", glow: "magi-glow-amber" },
+          { key: "CASPER", jp: "カスパー", accent: "from-emerald-500 to-teal-600", glow: "magi-glow-emerald" },
+        ];
+
+        const handleCheck = (i) => {
+          const ok = normalize(answers[i]) === ANSWERS[i];
+          setStatus((prev) => prev.map((v, idx) => (idx === i ? ok : v)));
+        };
+
+        const resetOne = (i) => {
+          setAnswers((a) => a.map((v, idx) => (idx === i ? "" : v)));
+          setStatus((s) => s.map((v, idx) => (idx === i ? false : v)));
+        };
+
+        const resetAll = () => {
+          setAnswers(["", "", ""]);
+          setStatus([false, false, false]);
+          setShowCongrats(false);
+        };
+
+        useEffect(() => {
+          if (allClear) {
+            // tiny delay for feel
+            const t = setTimeout(() => setShowCongrats(true), 300);
+            return () => clearTimeout(t);
+          }
+        }, [allClear]);
+
+        const updateImageUrl = (i, url) => {
+          setImages((prev) => prev.map((v, idx) => (idx === i ? url || v : v)));
+        };
+
+        return (
+          <div className="min-h-[calc(var(--vh,1vh)*100)] bg-[var(--magi-bg)] text-white flex flex-col font-magi magi-grid">
+            {/* Header */}
+            <header className="px-4 pt-4 pb-2 flex items-center justify-between">
+              <div className="flex items-center gap-3">
+                <div className="w-2 h-2 rounded-full bg-emerald-400 animate-pulse" />
+                <h1 className="text-lg font-semibold tracking-[0.25em] drop-shadow-[0_0_12px_rgba(34,211,238,0.35)]">MAGI SYSTEM</h1>
+              </div>
+              <div className="w-6" />
+            </header>
+
+            {/* Subtitle / Copy */}
+            <div className="px-4 text-[10px] opacity-70 tracking-[0.25em]">
+              [ MELCHIOR | BALTHASAR | CASPER ] — AUTHORIZATION REQUIRED
+            </div>
+
+            {/* Systems grid */}
+            <div className="relative flex-1 p-6">
+              {/* Compact triangle layout centered */}
+              <div className="absolute inset-0 flex items-center justify-center">
+                <div className="relative triangle-container">
+                  {/* Top: BALTHASAR (index 1) */}
+                  <div className="absolute top-0 left-1/2 -translate-x-1/2">
+                    <SystemButton i={1} sys={SYSTEMS[1]} status={status} onOpen={() => setOpenIdx(1)} />
+                  </div>
+                  {/* Left: CASPER (index 2) */}
+                  <div className="absolute bottom-0 left-0">
+                    <SystemButton i={2} sys={SYSTEMS[2]} status={status} onOpen={() => setOpenIdx(2)} />
+                  </div>
+                  {/* Right: MELCHIOR (index 0) */}
+                  <div className="absolute bottom-0 right-0">
+                    <SystemButton i={0} sys={SYSTEMS[0]} status={status} onOpen={() => setOpenIdx(0)} />
+                  </div>
+                </div>
+              </div>
+            </div>
+
+            {/* Footer / Apply */}
+            <div className="p-4">
+              <button
+                disabled={!allClear}
+                onClick={() => alert("応募ありがとうございます！(デモ)\n※ 実装時は応募フォームへ遷移")}
+                className={[
+                  "w-full py-4 rounded-2xl text-sm font-bold tracking-[0.25em]",
+                  "border transition active:scale-[0.99] magi-panel",
+                  allClear
+                    ? "bg-gradient-to-r from-emerald-500 to-teal-600 border-emerald-300 shadow-lg shadow-emerald-600/20"
+                    : "bg-gradient-to-r from-slate-700 to-slate-800 border-white/10 opacity-60",
+                ].join(" ")}
+              >
+                {allClear ? "APPLY — AUTHORIZED [MAGI]" : "APPLY — LOCKED UNTIL 3/3 AUTH"}
+              </button>
+
+              <div className="mt-3 flex justify-between text-[10px] opacity-60">
+                <button onClick={resetAll} className="underline underline-offset-4">
+                  進捗リセット
+                </button>
+                <span>MOBILE OPTIMIZED / STATE: LOCAL</span>
+              </div>
+            </div>
+
+            {/* Settings Panel */}
+            {showSettings && (
+              <div className="fixed inset-0 bg-black/60 backdrop-blur-sm z-30 flex items-end">
+                <div className="w-full magi-panel rounded-t-2xl p-4 space-y-3">
+                  <div className="flex items-center justify-between">
+                    <h2 className="text-sm font-semibold tracking-[0.2em]">画像差し替え（URL入力）</h2>
+                    <button className="text-xs opacity-70 underline" onClick={() => setShowSettings(false)}>閉じる</button>
+                  </div>
+                  {[0, 1, 2].map((i) => (
+                    <div key={i} className="space-y-2">
+                      <label className="text-[11px] opacity-70">Q{i + 1} 画像URL</label>
+                      <input
+                        className="w-full px-3 py-2 rounded-xl bg-[#0b1224] border border-white/10 text-sm"
+                        value={images[i]}
+                        onChange={(e) => updateImageUrl(i, e.target.value)}
+                        placeholder="assets/q1.png など"
+                      />
+                      <div className="flex gap-2 text-[11px] opacity-80">
+                        <button
+                          className="px-3 py-1 rounded-lg bg-white/5 border border-white/10"
+                          onClick={() => updateImageUrl(i, PLACEHOLDERS[i])}
+                        >既定に戻す</button>
+                      </div>
+                    </div>
+                  ))}
+                </div>
+              </div>
+            )}
+
+            {/* Puzzle Modals */}
+            {openIdx !== null && (
+              <Modal onClose={() => setOpenIdx(null)}>
+                <PuzzleModalContent
+                  idx={openIdx}
+                  imageUrl={images[openIdx]}
+                  value={answers[openIdx]}
+                  approved={status[openIdx]}
+                  onChange={(v) => setAnswers((a) => a.map((x, i) => (i === openIdx ? v : x)))}
+                  onCheck={() => handleCheck(openIdx)}
+                  onReset={() => resetOne(openIdx)}
+                />
+              </Modal>
+            )}
+
+            {/* Congrats overlay */}
+            {showCongrats && (
+              <div className="fixed inset-0 z-20 pointer-events-none">
+                <div className="absolute inset-0 bg-emerald-400/0 animate-[ping_1.6s_ease-in-out_1]" />
+              </div>
+            )}
+          </div>
+        );
+      }
+
+      function Modal({ children, onClose }) {
+        useEffect(() => {
+          const onKey = (e) => e.key === "Escape" && onClose();
+          window.addEventListener("keydown", onKey);
+          return () => window.removeEventListener("keydown", onKey);
+        }, [onClose]);
+        return (
+          <div className="fixed inset-0 z-40 flex items-center justify-center">
+            <div className="absolute inset-0 bg-black/70" onClick={onClose} />
+            <div className="relative w-full max-w-md magi-panel rounded-2xl p-4 mx-4">
+              {children}
+            </div>
+          </div>
+        );
+      }
+
+      function PuzzleModalContent({ idx, imageUrl, value, approved, onChange, onCheck, onReset }) {
+        const titles = [
+          { en: "MELCHIOR", jp: "問題1" },
+          { en: "BALTHASAR", jp: "問題2" },
+          { en: "CASPER", jp: "問題3" },
+        ];
+
+        return (
+          <div className="space-y-3">
+            <div className="flex items-center justify-between">
+              <div>
+                <div className="text-[10px] opacity-70 tracking-[0.3em]">{titles[idx].en}</div>
+                <h3 className="text-base font-semibold tracking-[0.1em]">{titles[idx].jp}</h3>
+              </div>
+              <div>
+                {approved ? (
+                  <span className="px-2 py-0.5 rounded-full bg-emerald-500/20 text-emerald-300 text-lg border border-emerald-400/30 font-mincho">承認</span>
+                ) : (
+                  <span className="px-2 py-1 rounded-full bg-yellow-500/10 text-yellow-300 text-[11px] border border-yellow-400/30">審議中</span>
+                )}
+              </div>
+            </div>
+
+            {/* Image */}
+            <div className="relative w-full rounded-xl overflow-hidden border border-white/10 bg-[#0b1224] flex items-center justify-center">
+              <img
+                src={imageUrl}
+                alt={`Q${idx + 1}`}
+                className="max-h-[60vh] w-full h-auto object-contain"
+              />
+            </div>
+
+            {/* Answer input */}
+            <div className="space-y-2">
+              <label className="text-[11px] opacity-80">回答欄</label>
+              <div className="flex gap-2">
+                <input
+                  value={value}
+                  onChange={(e) => onChange(e.target.value)}
+                  className="flex-1 px-3 py-3 rounded-xl bg-[#0b1224] border border-white/10 text-sm"
+                  placeholder="ここに回答を入力"
+                  inputMode={idx === 1 ? "numeric" : "text"}
+                />
+                <button
+                  onClick={onCheck}
+                  className="px-4 py-3 rounded-xl bg-gradient-to-r from-cyan-500 to-sky-600 text-sm font-semibold border border-white/10 active:scale-95"
+                >
+                  確認
+                </button>
+              </div>
+              <div className="flex items-center gap-3 text-[11px]">
+                <button onClick={onReset} className="underline underline-offset-4 opacity-80">この問題をやり直す</button>
+                {approved && <span className="text-emerald-300 font-mincho text-xl">承認</span>}
+              </div>
+              {/* Hint badges */}
+              <div className="mt-1 flex flex-wrap gap-2 text-[10px] opacity-70">
+                {idx === 0 && <span className="px-2 py-0.5 rounded-full bg-white/5 border border-white/10">カタカナで入力</span>}
+                {idx === 1 && <span className="px-2 py-0.5 rounded-full bg-white/5 border border-white/10">半角/全角どちらでも可</span>}
+                {idx === 2 && <span className="px-2 py-0.5 rounded-full bg-white/5 border border-white/10">カタカナで入力</span>}
+              </div>
+            </div>
+          </div>
+        );
+      }
+
+      const root = ReactDOM.createRoot(document.getElementById('root'));
+      root.render(<App />);
+    </script>
+
+    <div class="magi-scanlines"></div>
+  </body>
 </html>
