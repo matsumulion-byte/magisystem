@@ -1,399 +1,226 @@
-<!doctype html>
+<!DOCTYPE html>
 <html lang="ja">
-  <head>
-    <meta charset="utf-8" />
-    <meta name="viewport" content="width=device-width, initial-scale=1" />
-    <title>EVA QUIZ</title>
-    <script src="https://cdn.tailwindcss.com"></script>
-    <script crossorigin src="https://unpkg.com/react@18/umd/react.development.js"></script>
-    <script crossorigin src="https://unpkg.com/react-dom@18/umd/react-dom.development.js"></script>
-    <script src="https://unpkg.com/@babel/standalone/babel.min.js"></script>
-    <link href="https://fonts.googleapis.com/css2?family=Share+Tech+Mono&display=swap" rel="stylesheet" />
-    <link href="https://fonts.googleapis.com/css2?family=Noto+Serif+JP:wght@700&display=swap" rel="stylesheet" />
-    <style>
-      html, body, #root { height: 100%; }
-      body { margin: 0; background: #0b0f1a; }
-      :root {
-        --magi-bg: #0b0f1a;
-        --magi-panel: #0f172a;
-        --magi-border: rgba(255,255,255,0.08);
-        --magi-cyan: #22d3ee;     /* MELCHIOR */
-        --magi-amber: #f59e0b;    /* BALTHASAR */
-        --magi-emerald: #34d399;  /* CASPER */
-      }
-      .font-magi { font-family: 'Share Tech Mono', ui-monospace, SFMono-Regular, Menlo, Monaco, Consolas, "Liberation Mono", "Courier New", monospace; }
-      .font-mincho { font-family: 'Noto Serif JP', serif; }
-      .magi-scanlines {
-        pointer-events: none;
-        position: fixed; inset: 0; z-index: 10;
-        background-image: linear-gradient(rgba(255,255,255,0.03) 1px, transparent 1px);
-        background-size: 100% 3px;
-        mix-blend-mode: overlay;
-      }
-      .magi-grid {
-        background-image:
-          radial-gradient(ellipse at center, rgba(255,255,255,0.04) 0%, rgba(255,255,255,0.00) 60%),
-          linear-gradient(rgba(255,255,255,0.03) 1px, transparent 1px),
-          linear-gradient(90deg, rgba(255,255,255,0.03) 1px, transparent 1px);
-        background-size: 100% 100%, 32px 32px, 32px 32px;
-        background-position: center, 0 0, 0 0;
-      }
-      .magi-panel {
-        background: var(--magi-panel);
-        border: 1px solid var(--magi-border);
-        box-shadow:
-          inset 0 1px 0 rgba(255,255,255,0.05),
-          0 10px 30px rgba(0,0,0,0.35);
-      }
-      .magi-glow-emerald { box-shadow: 0 0 0 2px rgba(52,211,153,0.3), 0 0 24px rgba(52,211,153,0.25); }
-      .magi-glow-cyan { box-shadow: 0 0 0 2px rgba(34,211,238,0.3), 0 0 24px rgba(34,211,238,0.25); }
-      .magi-glow-amber { box-shadow: 0 0 0 2px rgba(245,158,11,0.3), 0 0 24px rgba(245,158,11,0.25); }
-      :root { --tri-size: min(95vw, 80vh); --btn-size: calc(var(--tri-size) * 0.48); }
-      .triangle-container { width: var(--tri-size); height: var(--tri-size); }
-      .system-btn { width: var(--btn-size); height: var(--btn-size); }
-    </style>
-  </head>
-  <body>
-    <div id="root"></div>
+<head>
+<meta charset="utf-8" />
+<meta name="viewport" content="width=device-width, initial-scale=1" />
+<title>MAGI ACCESS // Nazo Challenge</title>
+<style>
+  :root{
+    --bg:#05070a; --grid:#0f1a21; --stroke:#1e2a33; --muted:#8fbcc9;
+    --accent:#3aff7b; --accent2:#ffb23a; --danger:#ff5454; --white:#eef7f2;
+  }
+  html,body{height:100%;margin:0;background:var(--bg);color:var(--white);
+    font-family:ui-monospace, SFMono-Regular, Menlo, Consolas, "Liberation Mono", monospace}
+  .wrap{max-width:1100px;margin:0 auto;padding:16px}
+  header{display:flex;flex-wrap:wrap;gap:8px;align-items:center;margin-bottom:16px}
+  .tag{border:1px solid var(--stroke);padding:4px 8px;border-radius:8px;font-size:12px}
+  header h1{margin:0;font-size:14px;letter-spacing:.16em;color:#b9ffe6;flex:1 1 100%}
 
-    <script type="text/babel">
-      const { useEffect, useMemo, useState } = React;
+  .grid{display:grid;grid-template-columns:repeat(auto-fit,minmax(260px,1fr));gap:14px}
+  .magi{position:relative;border:1px solid var(--stroke);border-radius:12px;overflow:hidden;min-height:180px;
+        background:linear-gradient(180deg,rgba(58,255,123,.06),rgba(58,255,123,.02));}
+  .magi::before{content:"";position:absolute;inset:0;background:
+      repeating-linear-gradient(90deg,var(--grid),var(--grid) 1px,transparent 1px,transparent 12px),
+      repeating-linear-gradient(0deg,var(--grid),var(--grid) 1px,transparent 1px,transparent 12px);
+      mix-blend-mode:soft-light;opacity:.9;pointer-events:none}
+  .magi h2{margin:0;padding:10px 12px;background:#0a1218;border-bottom:1px solid var(--stroke);
+           font-size:12px;letter-spacing:.15em;color:#8ef0c6;display:flex;justify-content:space-between;align-items:center}
+  .lamp{width:8px;height:8px;border-radius:999px;background:#37434e;box-shadow:0 0 0 1px #182028 inset}
+  .magi[data-state="accepted"] .lamp{background:var(--accent);box-shadow:0 0 10px var(--accent)}
+  .magi .body{padding:12px;display:flex;flex-direction:column;gap:8px}
+  .kbd{border:1px dashed var(--stroke);padding:4px 6px;border-radius:8px;color:#cfeee2;font-size:12px;display:inline-block}
+  .btn{cursor:pointer;background:transparent;border:1px solid var(--stroke);color:var(--white);padding:8px 10px;border-radius:10px;font-size:14px}
+  .btn:hover{border-color:var(--accent)}
+  .status{font-size:11px;color:#9ddfc7;margin-top:auto}
+  .ok{color:var(--accent)}.ng{color:var(--danger)}
 
-      // --- Utility: text normalization (JP-friendly) ---
-      const toKatakana = (str) =>
-        str.replace(/[ぁ-ゖ]/g, (s) => String.fromCharCode(s.charCodeAt(0) + 0x60));
-      const toHankaku = (str) =>
-        str
-          // zenkaku numbers & ASCII
-          .replace(/[！-～]/g, (s) => String.fromCharCode(s.charCodeAt(0) - 0xfee0))
-          // zenkaku space -> half
-          .replace(/　/g, " ");
-      const normalize = (str) => toKatakana(toHankaku((str || "").trim())).replace(/\s+/g, "");
+  dialog{border:none;border-radius:14px;background:#0a0a0a;color:#fff;box-shadow:0 10px 40px rgba(0,0,0,.5);max-width:95vw;padding:0}
+  dialog::backdrop{background:rgba(0,0,0,.6)}
+  .modal-head{padding:12px 14px;border-bottom:1px solid #222;display:flex;gap:6px;align-items:center;font-size:14px}
+  .modal-body{padding:12px;display:flex;flex-direction:column;gap:12px}
 
-      // --- Answer keys ---
-      const ANSWERS = [
-        normalize("スーパー"), // Q1
-        normalize("20"), // Q2
-        normalize("アルマロス"), // Q3
-      ];
+  .subtitle-card{position:relative;aspect-ratio:16/9;background:#000;border:2px solid #fff}
+  .subtitle-card .num{position:absolute;top:8px;right:8px;font-size:14px;letter-spacing:.2em}
+  .subtitle-card .ttl{position:absolute;inset:0;display:flex;align-items:center;justify-content:center;font-family:"Yu Mincho","Hiragino Mincho ProN","MS PMincho",serif;font-size:28px;letter-spacing:.15em;font-weight:700}
+  .subtitle-card .ttl span{writing-mode:vertical-rl;text-orientation:upright}
 
-      // --- Default images ---
-      const PLACEHOLDERS = [
-        "assets/q1.png", // Q1
-        "assets/q2.png", // Q2
-        "assets/q3.png", // Q3
-      ];
+  .field{display:flex;gap:6px;align-items:center;flex-wrap:wrap}
+  input[type="text"],input[type="email"],input[type="number"],select{flex:1;min-width:160px;background:#0e1317;border:1px solid #27353f;border-radius:10px;color:#eafff5;padding:10px 12px;letter-spacing:.05em;font-size:14px}
+  .helper{font-size:11px;color:#9fb5be}
 
-      // --- LocalStorage helpers ---
-      const LS_KEY = "magi-puzzle-state-v1";
-      const loadState = () => {
-        try {
-          const raw = localStorage.getItem(LS_KEY);
-          return raw ? JSON.parse(raw) : null;
-        } catch (e) {
-          return null;
-        }
-      };
-      const saveState = (s) => {
-        try {
-          localStorage.setItem(LS_KEY, JSON.stringify(s));
-        } catch (e) {}
-      };
+  .footer{margin-top:12px;display:flex;flex-wrap:wrap;justify-content:space-between;align-items:center;gap:10px}
+  #apply{display:none}
+  #apply.show{display:inline-flex}
 
-      function SystemButton({ i, sys, status, onOpen }) {
-        return (
-          <button
-            onClick={onOpen}
-            className={[
-              "system-btn aspect-square rounded-2xl p-2 flex flex-col items-center justify-center",
-              "magi-panel relative",
-              status[i] ? `ring-2 ring-emerald-400 ${sys.glow}` : "hover:ring-1 hover:ring-white/20",
-            ].join(" ")}
-          >
-            <div className="absolute inset-0 rounded-2xl pointer-events-none">
-              <div className="absolute inset-x-2 top-2 h-px bg-white/10" />
-              <div className="absolute inset-y-2 left-2 w-px bg-white/10" />
-              <div className="absolute inset-y-2 right-2 w-px bg-white/10" />
-              <div className="absolute inset-x-2 bottom-2 h-px bg-white/10" />
-            </div>
-            <div className={`text-[9px] opacity-70 tracking-[0.3em] mb-1`}>{sys.key}</div>
-            {/* Remove Katakana label */}
-            <div className="mt-1 text-[10px]">
-              {status[i] ? (
-                <span className="px-2 py-0.5 rounded bg-emerald-500/10 text-emerald-300 border border-emerald-400/30 font-mincho text-2xl">承認</span>
-              ) : (
-                <span className="px-2 py-0.5 rounded bg-yellow-500/10 text-yellow-300 border border-yellow-400/30">審議中</span>
-              )}
-            </div>
-          </button>
-        );
-      }
+  /* 応募フォーム専用 */
+  form.entry{display:flex;flex-direction:column;gap:12px}
+  .field-vert{display:flex;flex-direction:column;gap:6px}
+  .field-vert label{font-size:12px;color:var(--muted)}
+  .row{display:flex;gap:10px;flex-wrap:wrap}
+  .row > *{flex:1 1 180px}
+  textarea{min-height:80px;resize:vertical}
+  .radio-group{display:flex;gap:10px;flex-wrap:wrap}
+  .actions{display:flex;gap:10px;justify-content:flex-end;margin-top:6px}
 
-      function App() {
-        const saved = useMemo(() => loadState(), []);
+  @media (max-width:540px){
+    .wrap{padding:12px}
+    dialog{width:100vw;height:100vh;border-radius:0}
+    .modal-head{position:sticky;top:0;background:#0a0a0a;z-index:1}
+    .modal-body{height:calc(100vh - 56px);overflow:auto;padding:14px}
+    .btn{padding:12px 14px;font-size:16px}
+    input[type="text"],input[type="email"],input[type="number"],select{padding:12px 14px;font-size:16px}
+  }
+</style>
+</head>
+<body>
+<div class="wrap">
+  <header>
+    <span class="tag">MAGI SYSTEM // ACCESS CHALLENGE</span>
+    <h1>MELCHIOR-1 / BALTHASAR-2 / CASPER-3</h1>
+    <span class="tag">3 PROBLEMS</span>
+  </header>
 
-        const [images, setImages] = useState(
-          saved?.images?.length === 3 ? saved.images : PLACEHOLDERS
-        );
-        const [answers, setAnswers] = useState(["", "", ""]);
-        const [status, setStatus] = useState(saved?.status || [false, false, false]);
-        const [openIdx, setOpenIdx] = useState(null); // modal index
-        const [showSettings, setShowSettings] = useState(false);
-        const [showCongrats, setShowCongrats] = useState(false);
+  <div class="grid">
+    <section class="magi" id="m1" data-state="idle">
+      <h2><span>MELCHIOR-1</span><span class="lamp"></span></h2>
+      <div class="body">
+        <div class="kbd">第壱問：タップして表示</div>
+        <button class="btn" data-open="q1">OPEN</button>
+        <div class="status" id="s1">STATUS: 待機中…</div>
+      </div>
+    </section>
 
-        const allClear = status.every(Boolean);
+    <section class="magi" id="m2" data-state="idle">
+      <h2><span>BALTHASAR-2</span><span class="lamp"></span></h2>
+      <div class="body">
+        <div class="kbd">第弐問：タップして表示</div>
+        <button class="btn" data-open="q2">OPEN</button>
+        <div class="status" id="s2">STATUS: 待機中…</div>
+      </div>
+    </section>
 
-        useEffect(() => {
-          saveState({ images, status });
-        }, [images, status]);
+    <section class="magi" id="m3" data-state="idle">
+      <h2><span>CASPER-3</span><span class="lamp"></span></h2>
+      <div class="body">
+        <div class="kbd">第参問：タップして表示</div>
+        <button class="btn" data-open="q3">OPEN</button>
+        <div class="status" id="s3">STATUS: 待機中…</div>
+      </div>
+    </section>
+  </div>
 
-        // Mobile viewport full-height fix
-        useEffect(() => {
-          const setVh = () => {
-            document.documentElement.style.setProperty(
-              "--vh",
-              `${window.innerHeight * 0.01}px`
-            );
-          };
-          setVh();
-          window.addEventListener("resize", setVh);
-          return () => window.removeEventListener("resize", setVh);
-        }, []);
+  <div class="footer">
+    <div class="helper">※全MAGI承認で <span style="color:var(--accent)">応募ボタン</span> が出現</div>
+    <button id="apply" class="btn">応募する</button>
+  </div>
+</div>
 
-        const SYSTEMS = [
-          { key: "MELCHIOR", jp: "メルキオール", accent: "from-cyan-500 to-sky-600", glow: "magi-glow-cyan" },
-          { key: "BALTHASAR", jp: "バルタザール", accent: "from-amber-500 to-orange-600", glow: "magi-glow-amber" },
-          { key: "CASPER", jp: "カスパー", accent: "from-emerald-500 to-teal-600", glow: "magi-glow-emerald" },
-        ];
-
-        const handleCheck = (i) => {
-          const ok = normalize(answers[i]) === ANSWERS[i];
-          setStatus((prev) => prev.map((v, idx) => (idx === i ? ok : v)));
-        };
-
-        const resetOne = (i) => {
-          setAnswers((a) => a.map((v, idx) => (idx === i ? "" : v)));
-          setStatus((s) => s.map((v, idx) => (idx === i ? false : v)));
-        };
-
-        const resetAll = () => {
-          setAnswers(["", "", ""]);
-          setStatus([false, false, false]);
-          setShowCongrats(false);
-        };
-
-        useEffect(() => {
-          if (allClear) {
-            // tiny delay for feel
-            const t = setTimeout(() => setShowCongrats(true), 300);
-            return () => clearTimeout(t);
-          }
-        }, [allClear]);
-
-        const updateImageUrl = (i, url) => {
-          setImages((prev) => prev.map((v, idx) => (idx === i ? url || v : v)));
-        };
-
-        return (
-          <div className="min-h-[calc(var(--vh,1vh)*100)] bg-[var(--magi-bg)] text-white flex flex-col font-magi magi-grid">
-            {/* Header */}
-            <header className="px-4 pt-4 pb-2 flex items-center justify-between">
-              <div className="flex items-center gap-3">
-                <div className="w-2 h-2 rounded-full bg-emerald-400 animate-pulse" />
-                <h1 className="text-lg font-semibold tracking-[0.25em] drop-shadow-[0_0_12px_rgba(34,211,238,0.35)]">MAGI SYSTEM</h1>
-              </div>
-              <div className="w-6" />
-            </header>
-
-            {/* Subtitle / Copy */}
-            <div className="px-4 text-[10px] opacity-70 tracking-[0.25em]">
-              [ MELCHIOR | BALTHASAR | CASPER ] — AUTHORIZATION REQUIRED
-            </div>
-
-            {/* Systems grid */}
-            <div className="relative flex-1 p-6">
-              {/* Compact triangle layout centered */}
-              <div className="absolute inset-0 flex items-center justify-center">
-                <div className="relative triangle-container">
-                  {/* Top: BALTHASAR (index 1) */}
-                  <div className="absolute top-0 left-1/2 -translate-x-1/2">
-                    <SystemButton i={1} sys={SYSTEMS[1]} status={status} onOpen={() => setOpenIdx(1)} />
-                  </div>
-                  {/* Left: CASPER (index 2) */}
-                  <div className="absolute bottom-0 left-0">
-                    <SystemButton i={2} sys={SYSTEMS[2]} status={status} onOpen={() => setOpenIdx(2)} />
-                  </div>
-                  {/* Right: MELCHIOR (index 0) */}
-                  <div className="absolute bottom-0 right-0">
-                    <SystemButton i={0} sys={SYSTEMS[0]} status={status} onOpen={() => setOpenIdx(0)} />
-                  </div>
-                </div>
-              </div>
-            </div>
-
-            {/* Footer / Apply */}
-            <div className="p-4">
-              <button
-                disabled={!allClear}
-                onClick={() => alert("応募ありがとうございます！(デモ)\n※ 実装時は応募フォームへ遷移")}
-                className={[
-                  "w-full py-4 rounded-2xl text-sm font-bold tracking-[0.25em]",
-                  "border transition active:scale-[0.99] magi-panel",
-                  allClear
-                    ? "bg-gradient-to-r from-emerald-500 to-teal-600 border-emerald-300 shadow-lg shadow-emerald-600/20"
-                    : "bg-gradient-to-r from-slate-700 to-slate-800 border-white/10 opacity-60",
-                ].join(" ")}
-              >
-                {allClear ? "APPLY — AUTHORIZED [MAGI]" : "APPLY — LOCKED UNTIL 3/3 AUTH"}
-              </button>
-
-              <div className="mt-3 flex justify-between text-[10px] opacity-60">
-                <button onClick={resetAll} className="underline underline-offset-4">
-                  進捗リセット
-                </button>
-                <span>MOBILE OPTIMIZED / STATE: LOCAL</span>
-              </div>
-            </div>
-
-            {/* Settings Panel */}
-            {showSettings && (
-              <div className="fixed inset-0 bg-black/60 backdrop-blur-sm z-30 flex items-end">
-                <div className="w-full magi-panel rounded-t-2xl p-4 space-y-3">
-                  <div className="flex items-center justify-between">
-                    <h2 className="text-sm font-semibold tracking-[0.2em]">画像差し替え（URL入力）</h2>
-                    <button className="text-xs opacity-70 underline" onClick={() => setShowSettings(false)}>閉じる</button>
-                  </div>
-                  {[0, 1, 2].map((i) => (
-                    <div key={i} className="space-y-2">
-                      <label className="text-[11px] opacity-70">Q{i + 1} 画像URL</label>
-                      <input
-                        className="w-full px-3 py-2 rounded-xl bg-[#0b1224] border border-white/10 text-sm"
-                        value={images[i]}
-                        onChange={(e) => updateImageUrl(i, e.target.value)}
-                        placeholder="assets/q1.png など"
-                      />
-                      <div className="flex gap-2 text-[11px] opacity-80">
-                        <button
-                          className="px-3 py-1 rounded-lg bg-white/5 border border-white/10"
-                          onClick={() => updateImageUrl(i, PLACEHOLDERS[i])}
-                        >既定に戻す</button>
-                      </div>
-                    </div>
-                  ))}
-                </div>
-              </div>
-            )}
-
-            {/* Puzzle Modals */}
-            {openIdx !== null && (
-              <Modal onClose={() => setOpenIdx(null)}>
-                <PuzzleModalContent
-                  idx={openIdx}
-                  imageUrl={images[openIdx]}
-                  value={answers[openIdx]}
-                  approved={status[openIdx]}
-                  onChange={(v) => setAnswers((a) => a.map((x, i) => (i === openIdx ? v : x)))}
-                  onCheck={() => handleCheck(openIdx)}
-                  onReset={() => resetOne(openIdx)}
-                />
-              </Modal>
-            )}
-
-            {/* Congrats overlay */}
-            {showCongrats && (
-              <div className="fixed inset-0 z-20 pointer-events-none">
-                <div className="absolute inset-0 bg-emerald-400/0 animate-[ping_1.6s_ease-in-out_1]" />
-              </div>
-            )}
+<!-- 応募フォーム -->
+<dialog id="entry">
+  <div class="modal-head"><strong>応募フォーム</strong><span class="helper">（すべて入力してください）</span></div>
+  <div class="modal-body">
+    <form id="entryForm" class="entry" novalidate>
+      <div class="row">
+        <div class="field-vert">
+          <label for="name">氏名</label>
+          <input id="name" name="name" type="text" required placeholder="山田 太郎" />
+        </div>
+        <div class="field-vert">
+          <label for="email">メールアドレス</label>
+          <input id="email" name="email" type="email" required placeholder="example@mail.com" />
+        </div>
+      </div>
+      <div class="field-vert">
+        <label for="address">住所</label>
+        <textarea id="address" name="address" required placeholder="都道府県・市区町村・番地・建物名"></textarea>
+      </div>
+      <div class="row">
+        <div class="field-vert">
+          <label>性別</label>
+          <div class="radio-group">
+            <label><input type="radio" name="gender" value="男性" required /> 男性</label>
+            <label><input type="radio" name="gender" value="女性" /> 女性</label>
+            <label><input type="radio" name="gender" value="その他" /> その他</label>
+            <label><input type="radio" name="gender" value="無回答" /> 無回答</label>
           </div>
-        );
+        </div>
+        <div class="field-vert">
+          <label for="age">年齢</label>
+          <input id="age" name="age" type="number" min="0" max="120" required placeholder="例：28" />
+        </div>
+      </div>
+      <div class="actions">
+        <button type="button" class="btn" id="entryCancel">閉じる</button>
+        <button type="submit" class="btn" id="entrySubmit">送信</button>
+      </div>
+    </form>
+    <div id="entryDone" style="display:none">
+      <div class="kbd">送信完了</div>
+      <p class="helper">ご応募ありがとうございました。</p>
+      <div class="actions"><button class="btn" id="entryCloseDone">閉じる</button></div>
+    </div>
+  </div>
+</dialog>
+
+<script>
+window.MAGI_CONFIG = {
+  answers: {
+    q1:["スーパー","ｽｰﾊﾟｰ","super"],
+    q2:["20","２０"],
+    q3:["アルマロス","ｱﾙﾏﾛｽ","almaros"]
+  },
+  assets: { q1:[], q3:[] },
+  onApply: ()=>{ const d=document.getElementById('entry'); if(d) d.showModal(); }
+};
+</script>
+<script>
+(function(){
+  const CFG=window.MAGI_CONFIG;
+  const norm=(s)=>{if(!s)return"";const z2h=t=>t.replace(/[！-～]/g,ch=>String.fromCharCode(ch.charCodeAt(0)-0xFEE0));const hira=t=>t.replace(/[ぁ-ん]/g,ch=>String.fromCharCode(ch.charCodeAt(0)+0x60));return hira(z2h(s)).replace(/\s+/g,"").toLowerCase();};
+  const ans=CFG.answers;const state={q1:false,q2:false,q3:false};
+  const applyBtn=document.getElementById('apply');
+  const refresh=()=>{['m1','m2','m3'].forEach((id,i)=>{const q='q'+(i+1);document.getElementById(id).dataset.state=state[q]?'accepted':'idle'});
+    if(state.q1&&state.q2&&state.q3)applyBtn.classList.add('show');};
+
+  document.querySelectorAll('[data-open]').forEach(b=>b.addEventListener('click',()=>document.getElementById(b.getAttribute('data-open')).showModal()));
+  document.getElementById('check1').addEventListener('click',()=>judge('q1','a1','s1'));
+  document.getElementById('check2').addEventListener('click',()=>judge('q2','a2','s2'));
+  document.getElementById('check3').addEventListener('click',()=>judge('q3','a3','s3'));
+  ;['a1','a2','a3'].forEach((id,i)=>document.getElementById(id).addEventListener('keydown',e=>{if(e.key==='Enter')document.getElementById('check'+(i+1)).click();}));
+
+  function judge(q,inputId,statusId){
+    const ok=ans[q].some(x=>norm(x)===norm(document.getElementById(inputId).value));
+    const s=document.getElementById(statusId);
+    if(ok){state[q]=true;if(s)s.innerHTML='STATUS: <span class="ok">承認</span>';refresh();setTimeout(()=>{document.getElementById(q).close();},300);}else{state[q]=false;if(s)s.innerHTML='STATUS: <span class="ng">却下 - 再入力</span>';}}
+
+  applyBtn.addEventListener('click',()=>CFG.onApply());
+
+  // 応募フォーム submit 処理
+  const entry=document.getElementById('entry');
+  const form=document.getElementById('entryForm');
+  const done=document.getElementById('entryDone');
+  const cancelBtn=document.getElementById('entryCancel');
+  const closeDone=document.getElementById('entryCloseDone');
+  if(form){
+    form.addEventListener('submit',(e)=>{
+      e.preventDefault();
+      const fd=new FormData(form);
+      const requiredOK=['name','email','address','age'].every(k=>(fd.get(k)||'').toString().trim());
+      const genderOK=!!fd.get('gender');
+      const emailOK=/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test((fd.get('email')||'').toString());
+      const age=Number(fd.get('age'));
+      const ageOK=Number.isFinite(age)&&age>=0&&age<=120;
+      if(requiredOK&&genderOK&&emailOK&&ageOK){
+        form.style.display='none';
+        done.style.display='block';
+      }else{
+        alert('未入力、もしくは入力内容に誤りがあります。');
       }
-
-      function Modal({ children, onClose }) {
-        useEffect(() => {
-          const onKey = (e) => e.key === "Escape" && onClose();
-          window.addEventListener("keydown", onKey);
-          return () => window.removeEventListener("keydown", onKey);
-        }, [onClose]);
-        return (
-          <div className="fixed inset-0 z-40 flex items-center justify-center">
-            <div className="absolute inset-0 bg-black/70" onClick={onClose} />
-            <div className="relative w-full max-w-md magi-panel rounded-2xl p-4 mx-4">
-              {children}
-            </div>
-          </div>
-        );
-      }
-
-      function PuzzleModalContent({ idx, imageUrl, value, approved, onChange, onCheck, onReset }) {
-        const titles = [
-          { en: "MELCHIOR", jp: "問題1" },
-          { en: "BALTHASAR", jp: "問題2" },
-          { en: "CASPER", jp: "問題3" },
-        ];
-
-        return (
-          <div className="space-y-3">
-            <div className="flex items-center justify-between">
-              <div>
-                <div className="text-[10px] opacity-70 tracking-[0.3em]">{titles[idx].en}</div>
-                <h3 className="text-base font-semibold tracking-[0.1em]">{titles[idx].jp}</h3>
-              </div>
-              <div>
-                {approved ? (
-                  <span className="px-2 py-0.5 rounded-full bg-emerald-500/20 text-emerald-300 text-lg border border-emerald-400/30 font-mincho">承認</span>
-                ) : (
-                  <span className="px-2 py-1 rounded-full bg-yellow-500/10 text-yellow-300 text-[11px] border border-yellow-400/30">審議中</span>
-                )}
-              </div>
-            </div>
-
-            {/* Image */}
-            <div className="relative w-full rounded-xl overflow-hidden border border-white/10 bg-[#0b1224] flex items-center justify-center">
-              <img
-                src={imageUrl}
-                alt={`Q${idx + 1}`}
-                className="max-h-[60vh] w-full h-auto object-contain"
-              />
-            </div>
-
-            {/* Answer input */}
-            <div className="space-y-2">
-              <label className="text-[11px] opacity-80">回答欄</label>
-              <div className="flex gap-2">
-                <input
-                  value={value}
-                  onChange={(e) => onChange(e.target.value)}
-                  className="flex-1 px-3 py-3 rounded-xl bg-[#0b1224] border border-white/10 text-sm"
-                  placeholder="ここに回答を入力"
-                  inputMode={idx === 1 ? "numeric" : "text"}
-                />
-                <button
-                  onClick={onCheck}
-                  className="px-4 py-3 rounded-xl bg-gradient-to-r from-cyan-500 to-sky-600 text-sm font-semibold border border-white/10 active:scale-95"
-                >
-                  確認
-                </button>
-              </div>
-              <div className="flex items-center gap-3 text-[11px]">
-                <button onClick={onReset} className="underline underline-offset-4 opacity-80">この問題をやり直す</button>
-                {approved && <span className="text-emerald-300 font-mincho text-xl">承認</span>}
-              </div>
-              {/* Hint badges */}
-              <div className="mt-1 flex flex-wrap gap-2 text-[10px] opacity-70">
-                {idx === 0 && <span className="px-2 py-0.5 rounded-full bg-white/5 border border-white/10">カタカナで入力</span>}
-                {idx === 1 && <span className="px-2 py-0.5 rounded-full bg-white/5 border border-white/10">半角/全角どちらでも可</span>}
-                {idx === 2 && <span className="px-2 py-0.5 rounded-full bg-white/5 border border-white/10">カタカナで入力</span>}
-              </div>
-            </div>
-          </div>
-        );
-      }
-
-      const root = ReactDOM.createRoot(document.getElementById('root'));
-      root.render(<App />);
-    </script>
-
-    <div class="magi-scanlines"></div>
-  </body>
+    });
+  }
+  if(cancelBtn){ cancelBtn.addEventListener('click',()=> entry.close()); }
+  if(closeDone){ closeDone.addEventListener('click',()=> entry.close()); }
+})();
+</script>
+</body>
 </html>
